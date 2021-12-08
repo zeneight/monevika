@@ -5,8 +5,14 @@
 	use DB;
 	use CRUDBooster;
 	use Datatables;
+	use Carbon\Carbon;
 
 	class AdminTbMonitoringDomainController extends \crocodicstudio\crudbooster\controllers\CBController {
+
+		public function __construct() {
+			$this->online = 0;
+			$this->offline = 0;
+		}
 
 	    public function cbInit() {
 
@@ -18,11 +24,11 @@
 			$this->button_table_action = true;
 			$this->button_bulk_action = true;
 			$this->button_action_style = "button_icon";
-			$this->button_add = true;
+			$this->button_add = false;
 			$this->button_edit = true;
 			$this->button_delete = true;
 			$this->button_detail = true;
-			$this->button_show = true;
+			$this->button_show = false;
 			$this->button_filter = true;
 			$this->button_import = false;
 			$this->button_export = false;
@@ -31,23 +37,23 @@
 
 			# START COLUMNS DO NOT REMOVE THIS LINE
 			$this->col = [];
-			$this->col[] = ["label"=>"Aplikasi","name"=>"app_id"];
+			$this->col[] = ["label"=>"Aplikasi","name"=>"app_id","join"=>"tb_domain,url"];
 			$this->col[] = ["label"=>"Keterangan","name"=>"keterangan"];
 			$this->col[] = ["label"=>"Status","name"=>"status"];
 			# END COLUMNS DO NOT REMOVE THIS LINE
 
 			# START FORM DO NOT REMOVE THIS LINE
 			$this->form = [];
-			$this->form[] = ['label'=>'App Id','name'=>'app_id','type'=>'select2','validation'=>'required|integer|min:0','width'=>'col-sm-10','datatable_ajax'=>'true'];
+			$this->form[] = ['label'=>'Aplikasi','name'=>'app_id','type'=>'select2','validation'=>'required|integer|min:0','width'=>'col-sm-10','datatable'=>'tb_domain,url','datatable_ajax'=>'true'];
 			$this->form[] = ['label'=>'Keterangan','name'=>'keterangan','type'=>'textarea','validation'=>'required|string|min:5|max:5000','width'=>'col-sm-10'];
 			$this->form[] = ['label'=>'Status','name'=>'status','type'=>'number','validation'=>'required|integer|min:0','width'=>'col-sm-10'];
 			# END FORM DO NOT REMOVE THIS LINE
 
 			# OLD START FORM
 			//$this->form = [];
-			//$this->form[] = ["label"=>"App Id","name"=>"app_id","type"=>"select2","required"=>TRUE,"validation"=>"required|integer|min:0","datatable"=>"app,id"];
-			//$this->form[] = ["label"=>"Keterangan","name"=>"keterangan","type"=>"textarea","required"=>TRUE,"validation"=>"required|string|min:5|max:5000"];
-			//$this->form[] = ["label"=>"Status","name"=>"status","type"=>"number","required"=>TRUE,"validation"=>"required|integer|min:0"];
+			//$this->form[] = ['label'=>'Aplikasi','name'=>'app_id','type'=>'select2','validation'=>'required|integer|min:0','width'=>'col-sm-10','datatable'=>'tb_domain,url','datatable_ajax'=>'true'];
+			//$this->form[] = ['label'=>'Keterangan','name'=>'keterangan','type'=>'textarea','validation'=>'required|string|min:5|max:5000','width'=>'col-sm-10'];
+			//$this->form[] = ['label'=>'Status','name'=>'status','type'=>'number','validation'=>'required|integer|min:0','width'=>'col-sm-10'];
 			# OLD END FORM
 
 			/* 
@@ -156,10 +162,10 @@
 					\"serverSide\": true,
 					\"ajax\": '".CRUDBooster::mainpath('json-index')."',
 					\"columns\": [
-						{ data: \"tgl_input\", name:\"tgl_input\"},
-						{ data: \"app_id\", name:\"app_id\"},
+						{ data: \"aksi\", name:\"aksi\", orderable:false},
+						{ data: \"url\", name:\"app_id\"},
+						{ data: \"status\", name:\"status\"},
 						{ data: \"keterangan\", name:\"keterangan\"},
-						{ data: \"aksi\", name:\"aksi\", orderable:false}
 					],
 					\"language\": {
 						\"lengthMenu\": \"Tampilkan _MENU_ Data per Halaman\",
@@ -179,7 +185,7 @@
 						\"orderable\": false,
 					}],
 					\"dom\": \"ltrip\",
-					order: [[ 0, \"desc\" ]]
+					order: [[ 1, \"desc\" ]]
 				});
 				// pencarian
 				// $('#pedagang_filter').on('change', function(){
@@ -486,6 +492,20 @@
 		// index
 		public function getIndex(){
 			$data['page_title'] = "Data Monitoring Domain";
+
+			$data['taktif'] = DB::table('tb_domain')
+				->where('status', '=', 0)
+				->count();
+
+			$data['online'] = DB::table('tb_monitoring_domain')
+				->where('tgl_input', '=', Carbon::now()->format('Y-m-d'))
+				->where('status', '=', 1)
+				->count();
+			
+			$data['offline'] = DB::table('tb_monitoring_domain')
+				->where('tgl_input', '=', Carbon::now()->format('Y-m-d'))
+				->where('status', '=', 0)
+				->count();
 			
 			return $this->view('mondom/index', $data);
 		}
@@ -507,20 +527,121 @@
 		// json index
 		public function getJsonIndex() {
 			$sql = DB::table("tb_monitoring_domain")
-			->select(
-				'tb_monitoring_domain.*'
+			->rightJoin(
+				'tb_domain', 
+				'tb_monitoring_domain.app_id', 
+				'=', 
+				'tb_domain.id'
 				)
+			->select(
+				'tb_domain.url',
+				'tb_monitoring_domain.id',
+				'tb_monitoring_domain.keterangan',
+				'tb_monitoring_domain.status',
+				'tb_monitoring_domain.tgl_input'
+				)
+			->where('tgl_input', '=', Carbon::now()->format('Y-m-d'))
 			->get();
-	
+				
+			// datatable
 			return Datatables::of($sql)
-			->editColumn('tgl_input', function($sql) {
-				return Carbon::parse($sql->tgl_input)->format('d/m/Y');
-			})
 			->addColumn('aksi', function($sql){
-				return view('datatables::default', compact('sql'));
+				return view('datatables/default', compact('sql'));
+			})
+			->editColumn('url', function($sql) {
+				return view('datatables/url', compact('sql'));
+			})
+			->editColumn('status', function($sql) {
+				return view('datatables/status', compact('sql'));
 			})
 			->make(true);
 		}
 
+		// test curl whatsapp
+		public function getPesan($pesannya) {
+			$curl = curl_init();
 
+			$data = array(
+				'receiver'=>'6281238921686',
+				'device'=>'6285776715240',
+				'type'=>'chat',
+				'message'=>"== *Informasi Cek Aplikasi/Domain* == \r\n".$pesannya,
+			);
+
+			$q = http_build_query($data);
+
+			// dd($q);
+
+			curl_setopt_array($curl, array(
+				CURLOPT_URL => 'https://app.whatspie.com/api/messages',
+				CURLOPT_RETURNTRANSFER => true,
+				CURLOPT_ENCODING => '',
+				CURLOPT_MAXREDIRS => 10,
+				CURLOPT_TIMEOUT => 0,
+				CURLOPT_FOLLOWLOCATION => true,
+				CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+				CURLOPT_CUSTOMREQUEST => 'POST',
+				CURLOPT_POSTFIELDS => $q,
+				CURLOPT_HTTPHEADER => array(
+					'Accept: application/json',
+					'Content-Type: application/x-www-form-urlencoded',
+					'Authorization: Bearer w6fZCpbvECaz9ErXvAoScuccEQYXBRGOeKQfv0n67f36zcoINX'
+				),
+			));
+
+			$response = curl_exec($curl);
+
+			curl_close($curl);
+			// echo $response;	  
+			echo 'Yay!';
+		}
+
+		// 
+		public function getCek() {
+			$up = $down = 0;
+			$domains = DB::table('tb_domain')->get();
+
+			foreach($domains as $item){
+				$curlInit = curl_init($item->url);
+				curl_setopt($curlInit,CURLOPT_CONNECTTIMEOUT,10);
+				curl_setopt($curlInit,CURLOPT_HEADER,true);
+				curl_setopt($curlInit,CURLOPT_NOBODY,true);
+				curl_setopt($curlInit,CURLOPT_RETURNTRANSFER,true);
+
+				//get answer
+				$response = curl_exec($curlInit);
+				$status = curl_getinfo($curlInit, CURLINFO_HTTP_CODE);
+
+				curl_close($curlInit);
+				if ($status==200 || $status==302 || $status==301) {
+					$st = 1;
+				} else if ($status===0) {
+					$status = " not available";
+					$st = 0;
+				} else {
+					$st = 0;
+				}
+
+				// insert data
+				DB::table('tb_monitoring_domain')->insert([
+					'app_id' => $item->id,
+					'status' => $st,
+					'keterangan' => "HTTP Code ".$status,
+					'tgl_input' => Date('Y-m-d')
+				]);
+
+				if ($st==0) {
+					$down = $down+1;
+				} else {
+					$up = $up+1;
+				}
+			}
+
+			$total = "Ini adalah hasilnya: Down:".$down. "/ Up:".$up;
+
+			$this->online = $up;
+			$this->offline = $down;
+
+			return $this->getPesan($total);
+		}
 	}

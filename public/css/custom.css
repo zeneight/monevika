@@ -21,6 +21,9 @@
 .no-margin {
     margin-bottom: 0;
 }
+.no-padding {
+    padding: 0;
+}
 
 /* dashboard */
 .card-body.bg-light {
@@ -43,6 +46,12 @@
 span.angka {
     font-size: 60px;
     line-height: 0.6;
+}
+.pl-0 {
+    padding-left: 0;
+}
+.pl-15 {
+    padding-left: 15px;
 }
 .card-body.bg-light p {
     margin: 7px 0 0px;
