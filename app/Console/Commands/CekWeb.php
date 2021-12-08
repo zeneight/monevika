@@ -38,6 +38,7 @@ class CekWeb extends Command
      */
     public function handle()
     {
-        return Amd::getCek();
+        $AmdClass = new Amd();
+        return $AmdClass->getCek();
     }
 }

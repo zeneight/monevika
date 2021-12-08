@@ -565,7 +565,7 @@
 				'receiver'=>'6281238921686',
 				'device'=>'6285776715240',
 				'type'=>'chat',
-				'message'=>"== *Informasi Cek Aplikasi/Domain* == \r\n".$pesannya,
+				'message'=>"== *Informasi Monev Aplikasi* == \r\n\n".$pesannya,
 			);
 
 			$q = http_build_query($data);
@@ -601,47 +601,51 @@
 			$up = $down = 0;
 			$domains = DB::table('tb_domain')->get();
 
-			foreach($domains as $item){
-				$curlInit = curl_init($item->url);
-				curl_setopt($curlInit,CURLOPT_CONNECTTIMEOUT,10);
-				curl_setopt($curlInit,CURLOPT_HEADER,true);
-				curl_setopt($curlInit,CURLOPT_NOBODY,true);
-				curl_setopt($curlInit,CURLOPT_RETURNTRANSFER,true);
-
-				//get answer
-				$response = curl_exec($curlInit);
-				$status = curl_getinfo($curlInit, CURLINFO_HTTP_CODE);
-
-				curl_close($curlInit);
-				if ($status==200 || $status==302 || $status==301) {
-					$st = 1;
-				} else if ($status===0) {
-					$status = " not available";
-					$st = 0;
-				} else {
-					$st = 0;
+			$cek = DB::table('tb_monitoring_domain')->where('app_id', '=', 1)->first();
+			if ($cek === null) {
+				foreach($domains as $item){
+					$curlInit = curl_init($item->url);
+					curl_setopt($curlInit,CURLOPT_CONNECTTIMEOUT,10);
+					curl_setopt($curlInit,CURLOPT_HEADER,true);
+					curl_setopt($curlInit,CURLOPT_NOBODY,true);
+					curl_setopt($curlInit,CURLOPT_RETURNTRANSFER,true);
+	
+					//get answer
+					$response = curl_exec($curlInit);
+					$status = curl_getinfo($curlInit, CURLINFO_HTTP_CODE);
+	
+					curl_close($curlInit);
+					if ($status==200 || $status==302 || $status==301) {
+						$st = 1;
+					} else if ($status===0) {
+						$status = " not available";
+						$st = 0;
+					} else {
+						$st = 0;
+					}
+	
+					// insert data
+					DB::table('tb_monitoring_domain')->insert([
+						'app_id' => $item->id,
+						'status' => $st,
+						'keterangan' => "HTTP Code ".$status,
+						'tgl_input' => Date('Y-m-d')
+					]);
+	
+					if ($st==0) {
+						$down = $down+1;
+					} else {
+						$up = $up+1;
+					}
 				}
-
-				// insert data
-				DB::table('tb_monitoring_domain')->insert([
-					'app_id' => $item->id,
-					'status' => $st,
-					'keterangan' => "HTTP Code ".$status,
-					'tgl_input' => Date('Y-m-d')
-				]);
-
-				if ($st==0) {
-					$down = $down+1;
-				} else {
-					$up = $up+1;
-				}
+	
+				$total = "Status Website \nDown: ".$down. " \nOnline: ".$up;
+				$total .= "\n\nInfo Detail: https://zeneight.xyz";
+	
+				$this->online = $up;
+				$this->offline = $down;
+	
+				return $this->getPesan($total);	
 			}
-
-			$total = "Ini adalah hasilnya: Down:".$down. "/ Up:".$up;
-
-			$this->online = $up;
-			$this->offline = $down;
-
-			return $this->getPesan($total);
 		}
 	}
