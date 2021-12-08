@@ -4,6 +4,7 @@
 	use Request;
 	use DB;
 	use CRUDBooster;
+	use Datatables;
 
 	class AdminTbMonitoringDomainController extends \crocodicstudio\crudbooster\controllers\CBController {
 
@@ -157,11 +158,8 @@
 					\"columns\": [
 						{ data: \"tgl_input\", name:\"tgl_input\"},
 						{ data: \"app_id\", name:\"app_id\"},
-						{ data: \"keterangan\", name:\"pangan_id\"},
-						{ data: \"pasokan\", name:\"pasokan\", className: \"text-right\"},
-						{ data: \"stok\", name:\"stok\", className: \"text-right\"},
-						{ data: \"harga\", name:\"harga\", className: \"text-right\"},
-						{ data: \"aksi\", name:\"hak\", orderable:false}
+						{ data: \"keterangan\", name:\"keterangan\"},
+						{ data: \"aksi\", name:\"aksi\", orderable:false}
 					],
 					\"language\": {
 						\"lengthMenu\": \"Tampilkan _MENU_ Data per Halaman\",
@@ -184,24 +182,15 @@
 					order: [[ 0, \"desc\" ]]
 				});
 				// pencarian
-				$('#pedagang_filter').on('change', function(){
-					var searchText1;
-					if($(this).val()=='') {
-						searchText1 = '';
-					} else {
-						searchText1 = '^' + $(this).val() + '$';
-					}
-					tb.column(1).search(searchText1, true, false, true).draw();   
-				});
-				$('#pangan_filter').on('change', function(){
-					var searchText2;
-					if($(this).val()=='') {
-						searchText2 = '';
-					} else {
-						searchText2 = '^' + $(this).val() + '$';
-					}
-					tb.column(2).search(searchText2, true, false, true).draw();   
-				});
+				// $('#pedagang_filter').on('change', function(){
+				// 	var searchText1;
+				// 	if($(this).val()=='') {
+				// 		searchText1 = '';
+				// 	} else {
+				// 		searchText1 = '^' + $(this).val() + '$';
+				// 	}
+				// 	tb.column(1).search(searchText1, true, false, true).draw();   
+				// });
 				
 				//tombol
 				function set_button(id) {
@@ -316,76 +305,6 @@
 
 				// input
 				$('.select2').select2();
-
-				//pangan
-				$('select[id=\"pedagang_id\"]').on('change',function(){
-					var id = $('#pedagang_id').val();
-					if(id=='') {id = '0';}
-
-					if ($('#pangan_id').val() != '') {
-						$(\"#pangan_id\").select2(\"val\", \"\");
-						$(\"#pangan_id\").select2(
-							{
-								placeholder: \"** Silahkan Pilih Pangan\"
-							}
-						);
-					}
-
-					$('#loader1').show();
-					$(\"#pangan_id\").prop('disabled', true);
-					
-					$.ajax(
-						{ 
-							type: 'GET', 
-							url: '".CRUDBooster::mainpath('fill-select-pangan')."/' + id, 
-							data: '', 
-							success: function(result) { 
-								$('select[id=\"pangan_id\"]').empty();
-								$('select[id=\"pangan_id\"]').append('<option value=\"0\">** Silahkan Pilih Pangan</option>');
-								$.each(result, function(i, val){ 
-									$('#pangan_id').append($('<option></option>').attr('value',val.value).text(val.label)); });
-								
-								$('#loader1').hide();
-								$(\"#pangan_id\").prop('disabled', false);
-							} 
-						}
-					);
-				});
-
-
-				//satuan
-				$('select[id=\"pangan_id\"]').on('change',function(){
-					var id = $('#pangan_id').val();
-					if(id=='') {id = '0';}
-
-					$('#belakang1').html('');
-					$('#belakang2').html('');
-					$('#belakang3').html('');
-					$('#belakang4').html('');
-					$.ajax(
-						{ 
-							type: 'GET', 
-							url: '".CRUDBooster::mainpath('fill-select-satuan')."/' + id, 
-							data: '', 
-							success: function(result) { 
-								console.log(result[0]);
-								$('#belakang1').html(result[0].val);
-								$('#belakang2').html(result[0].val);
-								$('#belakang3').html(result[0].val);
-								$('#belakang4').html('/'+result[0].val);
-							} 
-						}
-					);
-				});
-
-				// ketersediaan
-				$('#stok, #pasokan').on('change',function(){
-					var stok = parseInt($('#stok').val());
-					var pasokan = parseInt($('#pasokan').val());
-
-					var persediaan = stok+pasokan;
-					$('#persediaan').val(persediaan);
-				});
 			";
 
 
@@ -423,6 +342,7 @@
 	        |
 	        */
 	        $this->load_js = array();
+			$this->load_js[] = asset("vendor/crudbooster/assets/select2/dist/js/select2.full.min.js");
 	        
 	        
 	        
@@ -447,6 +367,8 @@
 	        |
 	        */
 	        $this->load_css = array();
+			$this->load_css[] = asset('vendor/crudbooster/assets/select2/dist/css/select2.min.css');
+			$this->load_css[] = asset('css/custom.css');
 	        
 	        
 	    }
@@ -565,7 +487,7 @@
 		public function getIndex(){
 			$data['page_title'] = "Data Monitoring Domain";
 			
-			$this->cbview('admin/mondom/index', $data);
+			return $this->view('mondom/index', $data);
 		}
 
 		// add
@@ -579,7 +501,7 @@
 
 			$data['aplikasi'] = "";
 
-			$this->cbview('admin/mondom/add', $data);
+			return $this->view('mondom/add', $data);
 		}
 
 		// json index

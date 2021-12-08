@@ -48,5 +48,4 @@
         </div>
     </div>
 </div>
-@include('admin.modal')
 @endsection
